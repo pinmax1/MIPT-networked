@@ -189,6 +189,7 @@ int main(int argc, const char **argv)
   while (!WindowShouldClose())
   {
     float dt = GetFrameTime(); // for future use and making it look smooth
+
     update_net(client, serverPeer);
     simulate_world(serverPeer);
     draw_world(camera);

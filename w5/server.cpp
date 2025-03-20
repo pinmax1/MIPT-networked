@@ -131,9 +131,11 @@ int main(int argc, const char **argv)
     uint32_t curTime = enet_time_get();
     float dt = (curTime - lastTime) * 0.001f;
     lastTime = curTime;
+
     update_net(server);
     simulate_world(server, dt);
     update_time(server, curTime);
+
     usleep(100000);
   }
 
