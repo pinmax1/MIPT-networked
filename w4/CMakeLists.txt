@@ -10,6 +10,7 @@ SET(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(W4_SOURCES
     main.cpp
+    bitstream.cpp
     protocol.cpp
     )
 

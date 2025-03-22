@@ -7,6 +7,8 @@ struct Entity
   uint32_t color = 0xff00ffff;
   float x = 0.f;
   float y = 0.f;
+  float size  = 1.0f;
+  float points = 0.0f;
   uint16_t eid = invalid_entity;
   bool serverControlled = false;
   float targetX = 0.f;

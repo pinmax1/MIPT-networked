@@ -6,11 +6,19 @@
 #include <vector>
 #include "entity.h"
 #include "protocol.h"
-
-
+#include <iostream>
 static std::vector<Entity> entities;
 static std::unordered_map<uint16_t, size_t> indexMap;
 static uint16_t my_entity = invalid_entity;
+
+static const std::vector<std::string> names = {
+  "Alice", "Bob", "Charlie", "David", "Eve", "Frank", "Grace", "Hank",
+  "Ivy", "Jack", "Kate", "Leo", "Mia", "Nathan", "Olivia", "Paul",
+  "Quinn", "Rachel", "Sam", "Tina", "Ulysses", "Vera", "Walter", "Xena",
+  "Yvonne", "Zack", "Amelia", "Benjamin", "Clara", "Daniel", "Emma", "Felix"
+};
+
+static std::unordered_map<std::string, float> nameToPoints;
 
 void on_new_entity_packet(ENetPacket *packet)
 {
@@ -40,13 +48,34 @@ void on_snapshot(ENetPacket *packet)
 {
   uint16_t eid = invalid_entity;
   float x = 0.f; float y = 0.f;
-  deserialize_snapshot(packet, eid, x, y);
+  float size = 0.f;
+  deserialize_snapshot(packet, eid, x, y, size);
   get_entity(eid, [&](Entity& e)
   {
     e.x = x;
     e.y = y;
+    e.size = size;
   });
 }
+
+void on_teleport(ENetPacket* packet) {
+  float x, y, size;
+  deserialize_teleport(packet, x, y, size);
+  get_entity(my_entity, [&](Entity& e) 
+  {
+    e.x = x;
+    e.y = y;
+    e.size = size;
+  });
+}
+
+void on_points(ENetPacket* packet) {
+  float points;
+  int eid;
+  deserialize_points(packet, points, eid);
+  nameToPoints[names[eid]] = points;
+}
+
 
 int main(int argc, const char **argv)
 {
@@ -96,6 +125,7 @@ int main(int argc, const char **argv)
   SetTargetFPS(60);               // Set our game to run at 60 frames-per-second
 
   bool connected = false;
+  
   while (!WindowShouldClose())
   {
     float dt = GetFrameTime();
@@ -123,6 +153,12 @@ int main(int argc, const char **argv)
         case E_SERVER_TO_CLIENT_SNAPSHOT:
           on_snapshot(event.packet);
           break;
+        case E_SERVER_TO_CLIENT_TELEPORT:
+          on_teleport(event.packet);
+          break;
+        case E_SERVER_TO_CLIENT_POINTS:
+          on_points(event.packet);
+          break;
         };
         break;
       default:
@@ -148,14 +184,18 @@ int main(int argc, const char **argv)
       });
     }
 
-
     BeginDrawing();
       ClearBackground(Color{40, 40, 40, 255});
       BeginMode2D(camera);
         for (const Entity &e : entities)
         {
-          const Rectangle rect = {e.x, e.y, 10.f, 10.f};
+          const Rectangle rect = {e.x, e.y, 10.f * e.size, 10.f * e.size};
           DrawRectangleRec(rect, GetColor(e.color));
+        }
+        int i = 0;
+        for(auto [name, points] : nameToPoints) {
+          DrawText((name + " " + std::to_string((int)points)).c_str(), 20 + camera.target.x - 350, 60 + i * 20 + camera.target.y - 350, 20, WHITE);
+          ++i;
         }
 
       EndMode2D();
