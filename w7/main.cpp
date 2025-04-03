@@ -86,8 +86,9 @@ static void draw_entity(const Entity& e)
   const float shipWidth = 2.f;
   const Vector2 fwd = Vector2{cosf(e.ori), sinf(e.ori)};
   const Vector2 left = Vector2{-fwd.y, fwd.x};
-  draw_ship(shipLen + 0.4f, shipWidth + 0.4f, e.x, e.y, fwd, left, GetColor(0xbbaa50ff));
-  draw_ship(shipLen, shipWidth, e.x, e.y, fwd, left, GetColor(e.color));
+  Vector3 hsv = ColorToHSV(GetColor(e.color));
+  draw_ship(shipLen + 0.4f, shipWidth + 0.4f, e.x, e.y, fwd, left, ColorFromHSV(int(hsv.x + 120.f) % 360, 1.f, 1.f));
+  draw_ship(shipLen, shipWidth, e.x, e.y, fwd, left, ColorFromHSV(hsv.x, hsv.y, hsv.z));//GetColor(e.color));
 }
 
 static void update_net(ENetHost* client, ENetPeer* serverPeer)
