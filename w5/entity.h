@@ -23,5 +23,12 @@ struct Entity
   uint16_t eid = invalid_entity;
 };
 
+struct Snapshot {
+	float x = 0.f;
+	float y = 0.f;
+	float ori = 0.f;
+	float serverTime = 0.f;
+};
+
 void simulate_entity(Entity &e, float dt);
 

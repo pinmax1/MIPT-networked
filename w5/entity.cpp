@@ -2,7 +2,6 @@
 #include "mathUtils.h"
 
 constexpr float worldSize = 30.f;
-
 float tile_val(float val, float border)
 {
   if (val < -border)

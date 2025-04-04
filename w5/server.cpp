@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <vector>
 #include <map>
-
+#include <chrono>
 static std::vector<Entity> entities;
 static std::map<uint16_t, ENetPeer*> controlledMap;
 
@@ -93,7 +93,7 @@ static void simulate_world(ENetHost* server, float dt)
       ENetPeer *peer = &server->peers[i];
       // skip this here in this implementation
       //if (controlledMap[e.eid] != peer)
-      send_snapshot(peer, e.eid, e.x, e.y, e.ori);
+      send_snapshot(peer, e.eid, e.x, e.y, e.ori, enet_time_get());
     }
   }
 }
@@ -138,7 +138,7 @@ int main(int argc, const char **argv)
 
     printf("%d\n", curTime);
 
-    usleep(100000);
+    std::this_thread::sleep_for(std::chrono::microseconds(100000));
   }
 
   enet_host_destroy(server);

@@ -8,11 +8,13 @@
 #include <vector>
 #include "entity.h"
 #include "protocol.h"
-
+#include <deque>
 
 static std::vector<Entity> entities;
 static std::unordered_map<uint16_t, size_t> indexMap;
 static uint16_t my_entity = invalid_entity;
+static std::unordered_map<uint16_t, std::deque<Snapshot>> snapshotQueues;
+static const float interpolationDelay = 200.0f;
 
 void on_new_entity_packet(ENetPacket *packet)
 {
@@ -41,14 +43,11 @@ static void get_entity(uint16_t eid, Callable c)
 void on_snapshot(ENetPacket *packet)
 {
   uint16_t eid = invalid_entity;
-  float x = 0.f; float y = 0.f; float ori = 0.f;
-  deserialize_snapshot(packet, eid, x, y, ori);
-  get_entity(eid, [&](Entity& e)
-  {
-      e.x = x;
-      e.y = y;
-      e.ori = ori;
-  });
+  float x = 0.f; float y = 0.f; float ori = 0.f; float time = 0.f;
+  deserialize_snapshot(packet, eid, x, y, ori, time);
+  Snapshot snapshot = { x,y,ori,time};
+  snapshotQueues[eid].push_back(snapshot);
+  
 }
 
 static void on_time(ENetPacket *packet, ENetPeer* peer)
@@ -68,6 +67,26 @@ static void draw_entity(const Entity& e)
                Vector2{e.x - fwd.x * shipLen * 0.5f - left.x * shipWidth * 0.5f, e.y - fwd.y * shipLen * 0.5f - left.y * shipWidth * 0.5f},
                Vector2{e.x - fwd.x * shipLen * 0.5f + left.x * shipWidth * 0.5f, e.y - fwd.y * shipLen * 0.5f + left.y * shipWidth * 0.5f},
                GetColor(e.color));
+}
+
+void interpolate() {
+    float curDelayTime = enet_time_get() - interpolationDelay;
+    for (auto& [eid, queue] : snapshotQueues) {
+        while (queue.size() >= 2 && queue[1].serverTime < curDelayTime) {
+            queue.pop_front();
+        }
+        if (queue.size() < 2) {
+            continue;
+        }
+        float snapshotTime = queue.front().serverTime;
+        get_entity(eid, [&](Entity& e) {
+            float t = (curDelayTime - queue[0].serverTime) / (queue[1].serverTime - queue[0].serverTime);
+            e.x = queue[0].x + (queue[1].x - queue[0].x) * t;
+            e.y = queue[0].y + (queue[1].y - queue[0].y) * t;
+            e.ori = queue[0].ori + (queue[1].ori - queue[0].ori) * t;
+            });
+    }
+
 }
 
 static void update_net(ENetHost* client, ENetPeer* serverPeer)
@@ -186,10 +205,12 @@ int main(int argc, const char **argv)
 
   SetTargetFPS(60);               // Set our game to run at 60 frames-per-second
 
+
   while (!WindowShouldClose())
   {
     float dt = GetFrameTime(); // for future use and making it look smooth
 
+    interpolate();
     update_net(client, serverPeer);
     simulate_world(serverPeer);
     draw_world(camera);
